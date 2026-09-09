@@ -25,28 +25,34 @@ def parse_labels(label_str: str) -> dict[str, str]:
     return labels
 
 
+# '{{json .}}' includes the Size field, which makes the CLI ask the daemon for
+# size=1. The daemon then walks every container's layers on disk to answer, which
+# costs seconds of CPU per poll. Request only the fields we actually use instead.
+PS_FIELDS = ("ID", "Names", "Image", "State", "Status", "Ports", "Labels")
+PS_FORMAT = "\t".join("{{." + f + "}}" for f in PS_FIELDS)
+
+
 def list_containers() -> list[dict]:
-    fmt = '{{json .}}'
-    raw = run(["docker", "ps", "-a", "--no-trunc", "--format", fmt])
+    raw = run(["docker", "ps", "-a", "--no-trunc", "--format", PS_FORMAT])
     if not raw:
         return []
     containers = []
     for line in raw.splitlines():
-        try:
-            data = json.loads(line)
-            labels = parse_labels(data.get("Labels", ""))
-            project = labels.get("com.docker.compose.project", "")
-            containers.append({
-                "id": data.get("ID", "")[:12],
-                "name": data.get("Names", ""),
-                "image": data.get("Image", ""),
-                "state": data.get("State", "").lower(),
-                "status": data.get("Status", ""),
-                "ports": data.get("Ports", ""),
-                "project": project,
-            })
-        except json.JSONDecodeError:
+        parts = line.split("\t")
+        if len(parts) != len(PS_FIELDS):
             continue
+        data = dict(zip(PS_FIELDS, parts))
+        labels = parse_labels(data["Labels"])
+        project = labels.get("com.docker.compose.project", "")
+        containers.append({
+            "id": data["ID"][:12],
+            "name": data["Names"],
+            "image": data["Image"],
+            "state": data["State"].lower(),
+            "status": data["Status"],
+            "ports": data["Ports"],
+            "project": project,
+        })
     return containers
 
 
