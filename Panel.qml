@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "Model.js" as Model
 
@@ -26,7 +27,7 @@ Panel {
   property var collapsedGroups: ({})
 
   readonly property string barIcon: "󰡨"
-  readonly property color fg: root.bar ? root.bar.foreground : Color.foreground
+  readonly property color fg: root.bar ? root.bar.foreground : Commons.Color.foreground
   readonly property color dim: Qt.darker(fg, 1.45)
   readonly property string fontFamily: root.bar ? root.bar.fontFamily : "JetBrainsMono Nerd Font"
   readonly property int pollInterval: {
